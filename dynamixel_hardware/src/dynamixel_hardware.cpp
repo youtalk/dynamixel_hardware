@@ -308,6 +308,10 @@ return_type DynamixelHardware::write(const rclcpp::Time & /* time */, const rclc
     for (auto & joint : joints_) {
       joint.prev_command.position = joint.command.position;
       joint.state.position = joint.command.position;
+      joint.prev_command.velocity = joint.command.velocity;
+      joint.state.velocity = joint.command.velocity;
+      joint.prev_command.effort = joint.command.effort;
+      joint.state.effort = joint.command.effort;
     }
     return return_type::OK;
   }
