@@ -55,6 +55,7 @@ enum class ControlMode {
   MultiTurn,
   CurrentBasedPosition,
   PWM,
+  NoControl,
 };
 
 class DynamixelHardware
@@ -74,6 +75,12 @@ public:
 
   DYNAMIXEL_HARDWARE_PUBLIC
   CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
+
+  DYNAMIXEL_HARDWARE_PUBLIC
+  return_type prepare_command_mode_switch(
+    const std::vector<std::string> & start_interfaces,
+    const std::vector<std::string> & stop_interfaces) override;
+
 
   DYNAMIXEL_HARDWARE_PUBLIC
   CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
@@ -100,7 +107,7 @@ private:
   std::vector<Joint> joints_;
   std::vector<uint8_t> joint_ids_;
   bool torque_enabled_{false};
-  ControlMode control_mode_{ControlMode::Position};
+  ControlMode control_mode_{ControlMode::NoControl};
   bool mode_changed_{false};
   bool use_dummy_{false};
 };

@@ -99,7 +99,7 @@ CallbackReturn DynamixelHardware::on_init(const hardware_interface::HardwareInfo
   }
 
   enable_torque(false);
-  set_control_mode(ControlMode::Position, true);
+  set_control_mode(control_mode_, true);
   set_joint_params();
   enable_torque(true);
 
@@ -205,6 +205,86 @@ std::vector<hardware_interface::CommandInterface> DynamixelHardware::export_comm
   }
 
   return command_interfaces;
+}
+
+
+return_type DynamixelHardware::prepare_command_mode_switch(
+  const std::vector<std::string> & start_interfaces,
+  const std::vector<std::string> & stop_interfaces)
+{
+  std::vector<ControlMode> new_modes;
+  if(control_mode_ == ControlMode::CurrentBasedPosition){
+    new_modes.push_back(ControlMode::Position);
+    new_modes.push_back(ControlMode::Current);
+  } else if(control_mode_ != ControlMode::NoControl){
+    new_modes.push_back(control_mode_);
+  } else { //cotrol_mode_ == ControlMode::NoControl
+  }
+
+  std::vector<std::vector<ControlMode>> new_joint_modes(info_.joints.size());
+  for (std::size_t i = 0; i < info_.joints.size(); i++){
+    for (std::string key : start_interfaces){
+      if (key == info_.joints[i].name + "/" + hardware_interface::HW_IF_POSITION){
+        new_joint_modes[i].push_back(ControlMode::Position);
+      }
+      if (key == info_.joints[i].name + "/" + hardware_interface::HW_IF_VELOCITY){
+        new_joint_modes[i].push_back(ControlMode::Velocity);
+      }
+      if (key == info_.joints[i].name + "/" + hardware_interface::HW_IF_EFFORT){
+        new_joint_modes[i].push_back(ControlMode::Current);
+      }
+    }
+  }
+  if (std::all_of(
+      new_joint_modes.begin() + 1, new_joint_modes.end(),
+      [&](const std::vector<ControlMode>& mode) { return mode == new_joint_modes[0]; })){
+    for(auto mode:new_joint_modes[0]){
+      new_modes.push_back(mode);
+    }
+  } else {
+    return return_type::ERROR;
+  }
+
+  std::vector<std::vector<ControlMode>> stop_joint_modes(info_.joints.size());
+  for (std::string key : stop_interfaces){
+    for (std::size_t i = 0; i < info_.joints.size(); i++){
+      if (key == info_.joints[i].name + "/" + hardware_interface::HW_IF_POSITION){
+        stop_joint_modes[i].push_back(ControlMode::Position);
+      }
+      if (key == info_.joints[i].name + "/" + hardware_interface::HW_IF_VELOCITY){
+        stop_joint_modes[i].push_back(ControlMode::Velocity);
+      }
+      if (key == info_.joints[i].name + "/" + hardware_interface::HW_IF_EFFORT){
+        stop_joint_modes[i].push_back(ControlMode::Current);
+      }
+    }
+  }
+  if (std::all_of(
+      stop_joint_modes.begin() + 1, stop_joint_modes.end(),
+      [&](const std::vector<ControlMode>& mode) { return mode == stop_joint_modes[0];})){
+    for(auto mode:stop_joint_modes[0]){
+      auto new_end = std::remove(new_modes.begin(), new_modes.end(), mode);
+      new_modes.erase(new_end, new_modes.end());
+    }
+  } else {
+    return return_type::ERROR;
+  }
+
+  if(new_modes.size() == 1){
+    control_mode_ = new_modes[0];
+  }else if(
+      std::find(new_modes.begin(), new_modes.end(), ControlMode::Position) != new_modes.end() &&
+      std::find(new_modes.begin(), new_modes.end(), ControlMode::Current) != new_modes.end()){
+    control_mode_ = ControlMode::CurrentBasedPosition;
+  }else if(new_modes.size() == 0){
+    RCLCPP_WARN(rclcpp::get_logger(kDynamixelHardware), "No Cotrol Interface, Torque disabled");
+    control_mode_ = ControlMode::NoControl;
+  } else {
+    RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "Not implemented hardware interfaces");
+    return return_type::ERROR;
+  }
+
+  return return_type::OK;
 }
 
 CallbackReturn DynamixelHardware::on_activate(const rclcpp_lifecycle::State & /* previous_state */)
