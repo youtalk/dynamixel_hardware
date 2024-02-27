@@ -196,12 +196,20 @@ std::vector<hardware_interface::StateInterface> DynamixelHardware::export_state_
   RCLCPP_DEBUG(rclcpp::get_logger(kDynamixelHardware), "export_state_interfaces");
   std::vector<hardware_interface::StateInterface> state_interfaces;
   for (uint i = 0; i < info_.joints.size(); i++) {
-    state_interfaces.emplace_back(hardware_interface::StateInterface(
-      info_.joints[i].name, hardware_interface::HW_IF_POSITION, &joints_[i].state.position));
-    state_interfaces.emplace_back(hardware_interface::StateInterface(
-      info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &joints_[i].state.velocity));
-    state_interfaces.emplace_back(hardware_interface::StateInterface(
-      info_.joints[i].name, hardware_interface::HW_IF_EFFORT, &joints_[i].state.effort));
+    for(auto joint_interface:info_.joints[i].state_interfaces){
+      if(joint_interface.name == hardware_interface::HW_IF_POSITION){
+        state_interfaces.emplace_back(hardware_interface::StateInterface(
+          info_.joints[i].name, hardware_interface::HW_IF_POSITION, &joints_[i].state.position));
+      }
+      if(joint_interface.name == hardware_interface::HW_IF_VELOCITY){
+        state_interfaces.emplace_back(hardware_interface::StateInterface(
+          info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &joints_[i].state.velocity));
+      }
+      if(joint_interface.name == hardware_interface::HW_IF_EFFORT){
+        state_interfaces.emplace_back(hardware_interface::StateInterface(
+          info_.joints[i].name, hardware_interface::HW_IF_EFFORT, &joints_[i].state.effort));
+      }
+    }
   }
 
   return state_interfaces;
@@ -212,12 +220,20 @@ std::vector<hardware_interface::CommandInterface> DynamixelHardware::export_comm
   RCLCPP_DEBUG(rclcpp::get_logger(kDynamixelHardware), "export_command_interfaces");
   std::vector<hardware_interface::CommandInterface> command_interfaces;
   for (uint i = 0; i < info_.joints.size(); i++) {
-    command_interfaces.emplace_back(hardware_interface::CommandInterface(
-      info_.joints[i].name, hardware_interface::HW_IF_POSITION, &joints_[i].command.position));
-    command_interfaces.emplace_back(hardware_interface::CommandInterface(
-      info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &joints_[i].command.velocity));
-    command_interfaces.emplace_back(hardware_interface::CommandInterface(
-      info_.joints[i].name, hardware_interface::HW_IF_EFFORT, &joints_[i].command.effort));
+    for(auto joint_interface:info_.joints[i].command_interfaces){
+      if(joint_interface.name == hardware_interface::HW_IF_POSITION){
+        command_interfaces.emplace_back(hardware_interface::CommandInterface(
+          info_.joints[i].name, hardware_interface::HW_IF_POSITION, &joints_[i].command.position));
+      }
+      if(joint_interface.name == hardware_interface::HW_IF_VELOCITY){
+        command_interfaces.emplace_back(hardware_interface::CommandInterface(
+          info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &joints_[i].command.velocity));
+      }
+      if(joint_interface.name == hardware_interface::HW_IF_EFFORT){
+        command_interfaces.emplace_back(hardware_interface::CommandInterface(
+          info_.joints[i].name, hardware_interface::HW_IF_EFFORT, &joints_[i].command.effort));
+      }
+    }
   }
 
   return command_interfaces;
