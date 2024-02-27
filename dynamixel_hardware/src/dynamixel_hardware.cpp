@@ -424,7 +424,6 @@ return_type DynamixelHardware::enable_torque(const bool enabled)
 return_type DynamixelHardware::set_control_mode(const ControlMode & mode)
 {
   const char * log = nullptr;
-  mode_changed_ = false;
 
   if (mode == ControlMode::NoControl) {
     if (torque_enabled_) {
@@ -438,7 +437,6 @@ return_type DynamixelHardware::set_control_mode(const ControlMode & mode)
       }
     }
     RCLCPP_INFO(rclcpp::get_logger(kDynamixelHardware), "Position control,but no torque mode");
-    mode_changed_ = true;
 
     return return_type::OK;
   }
@@ -455,7 +453,6 @@ return_type DynamixelHardware::set_control_mode(const ControlMode & mode)
       }
     }
     RCLCPP_INFO(rclcpp::get_logger(kDynamixelHardware), "Velocity control");
-    mode_changed_ = true;
 
     enable_torque(true);
     return return_type::OK;
@@ -473,7 +470,6 @@ return_type DynamixelHardware::set_control_mode(const ControlMode & mode)
       }
     }
     RCLCPP_INFO(rclcpp::get_logger(kDynamixelHardware), "Position control");
-    mode_changed_ = true;
 
     enable_torque(true);
     return return_type::OK;

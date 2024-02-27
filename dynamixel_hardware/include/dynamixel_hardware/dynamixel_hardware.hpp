@@ -109,7 +109,6 @@ private:
   bool torque_enabled_{false};
   ControlMode control_mode_{ControlMode::NoControl};
   ControlMode prev_control_mode_{ControlMode::NoControl};
-  bool mode_changed_{false};
   bool use_dummy_{false};
 };
 }  // namespace dynamixel_hardware
