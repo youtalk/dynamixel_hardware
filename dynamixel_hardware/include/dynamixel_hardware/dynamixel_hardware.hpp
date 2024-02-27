@@ -74,13 +74,12 @@ public:
   std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
 
   DYNAMIXEL_HARDWARE_PUBLIC
-  CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
-
-  DYNAMIXEL_HARDWARE_PUBLIC
   return_type prepare_command_mode_switch(
     const std::vector<std::string> & start_interfaces,
     const std::vector<std::string> & stop_interfaces) override;
-
+  
+  DYNAMIXEL_HARDWARE_PUBLIC
+  CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
 
   DYNAMIXEL_HARDWARE_PUBLIC
   CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
