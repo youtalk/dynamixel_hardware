@@ -106,6 +106,8 @@ private:
   std::map<const char * const, const ControlItem *> control_items_;
   std::vector<Joint> joints_;
   std::vector<uint8_t> joint_ids_;
+  std::vector<uint8_t> joint_ids_ttl_;
+  std::vector<uint8_t> joint_ids_rs_;
   bool torque_enabled_{false};
   ControlMode control_mode_{ControlMode::NoControl};
   ControlMode prev_control_mode_{ControlMode::NoControl};

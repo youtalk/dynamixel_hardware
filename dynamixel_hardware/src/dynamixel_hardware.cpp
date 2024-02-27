@@ -70,6 +70,12 @@ CallbackReturn DynamixelHardware::on_init(const hardware_interface::HardwareInfo
     joints_[i].command.velocity = std::numeric_limits<double>::quiet_NaN();
     joints_[i].command.effort = std::numeric_limits<double>::quiet_NaN();
     RCLCPP_INFO(rclcpp::get_logger(kDynamixelHardware), "joint_id %d: %d", i, joint_ids_[i]);
+
+    if(info_.joints[i].parameters.at("protocol") == "TTL"){
+      joint_ids_ttl_.push_back(joint_ids_[i]);
+    }else if(info_.joints[i].parameters.at("protocol") == "RS"){
+      joint_ids_rs_.push_back(joint_ids_[i]);
+    }
   }
 
   if (
@@ -347,46 +353,95 @@ return_type DynamixelHardware::read(const rclcpp::Time & /* time */, const rclcp
   if (use_dummy_) {
     return return_type::OK;
   }
+  
+  if(!joint_ids_ttl_.empty() && !joint_ids_rs_.empty()){
+    std::vector<uint8_t>* ids_each[] = {&joint_ids_ttl_, &joint_ids_rs_};
+    for(auto& idt: ids_each){
+      std::vector<uint8_t> ids(idt->size(), 0);
+      std::vector<int32_t> positions(idt->size(), 0);
+      std::vector<int32_t> velocities(idt->size(), 0);
+      std::vector<int32_t> currents(idt->size(), 0);
+      std::copy(idt->begin(), idt->end(), ids.begin());
+      const char * log = nullptr;
 
-  std::vector<uint8_t> ids(info_.joints.size(), 0);
-  std::vector<int32_t> positions(info_.joints.size(), 0);
-  std::vector<int32_t> velocities(info_.joints.size(), 0);
-  std::vector<int32_t> currents(info_.joints.size(), 0);
+      if (!dynamixel_workbench_.syncRead(
+            kPresentPositionVelocityCurrentIndex, ids.data(), ids.size(), &log)) {
+        RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
+      }
 
-  std::copy(joint_ids_.begin(), joint_ids_.end(), ids.begin());
-  const char * log = nullptr;
+      if (!dynamixel_workbench_.getSyncReadData(
+            kPresentPositionVelocityCurrentIndex, ids.data(), ids.size(),
+            control_items_[kPresentCurrentItem]->address,
+            control_items_[kPresentCurrentItem]->data_length, currents.data(), &log)) {
+        RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
+      }
 
-  if (!dynamixel_workbench_.syncRead(
-        kPresentPositionVelocityCurrentIndex, ids.data(), ids.size(), &log)) {
-    RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
+      if (!dynamixel_workbench_.getSyncReadData(
+            kPresentPositionVelocityCurrentIndex, ids.data(), ids.size(),
+            control_items_[kPresentVelocityItem]->address,
+            control_items_[kPresentVelocityItem]->data_length, velocities.data(), &log)) {
+        RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
+      }
+
+      if (!dynamixel_workbench_.getSyncReadData(
+            kPresentPositionVelocityCurrentIndex, ids.data(), ids.size(),
+            control_items_[kPresentPositionItem]->address,
+            control_items_[kPresentPositionItem]->data_length, positions.data(), &log)) {
+        RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
+      }
+
+      for(uint i = 0; i < ids.size(); i++){
+        auto it = std::find(joint_ids_.begin(), joint_ids_.end(), ids[i]);
+        if(it != joint_ids_.end()){
+          int index = std::distance(joint_ids_.begin(), it);
+          joints_[index].state.position = dynamixel_workbench_.convertValue2Radian(ids[i], positions[i]);
+          joints_[index].state.velocity = dynamixel_workbench_.convertValue2Velocity(ids[i], velocities[i]);
+          joints_[index].state.effort = dynamixel_workbench_.convertValue2Current(currents[i]);
+        }
+      }
+    }
+  }else{//When TTL and RS485 Protocols are not used at the same time
+    std::vector<uint8_t> ids(info_.joints.size(), 0);
+    std::vector<int32_t> positions(info_.joints.size(), 0);
+    std::vector<int32_t> velocities(info_.joints.size(), 0);
+    std::vector<int32_t> currents(info_.joints.size(), 0);
+
+    std::copy(joint_ids_.begin(), joint_ids_.end(), ids.begin());
+    const char * log = nullptr;
+
+    if (!dynamixel_workbench_.syncRead(
+          kPresentPositionVelocityCurrentIndex, ids.data(), ids.size(), &log)) {
+      RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
+    }
+
+    if (!dynamixel_workbench_.getSyncReadData(
+          kPresentPositionVelocityCurrentIndex, ids.data(), ids.size(),
+          control_items_[kPresentCurrentItem]->address,
+          control_items_[kPresentCurrentItem]->data_length, currents.data(), &log)) {
+      RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
+    }
+
+    if (!dynamixel_workbench_.getSyncReadData(
+          kPresentPositionVelocityCurrentIndex, ids.data(), ids.size(),
+          control_items_[kPresentVelocityItem]->address,
+          control_items_[kPresentVelocityItem]->data_length, velocities.data(), &log)) {
+      RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
+    }
+
+    if (!dynamixel_workbench_.getSyncReadData(
+          kPresentPositionVelocityCurrentIndex, ids.data(), ids.size(),
+          control_items_[kPresentPositionItem]->address,
+          control_items_[kPresentPositionItem]->data_length, positions.data(), &log)) {
+      RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
+    }
+
+    for (uint i = 0; i < ids.size(); i++) {
+      joints_[i].state.position = dynamixel_workbench_.convertValue2Radian(ids[i], positions[i]);
+      joints_[i].state.velocity = dynamixel_workbench_.convertValue2Velocity(ids[i], velocities[i]);
+      joints_[i].state.effort = dynamixel_workbench_.convertValue2Current(currents[i]);
+    }
   }
 
-  if (!dynamixel_workbench_.getSyncReadData(
-        kPresentPositionVelocityCurrentIndex, ids.data(), ids.size(),
-        control_items_[kPresentCurrentItem]->address,
-        control_items_[kPresentCurrentItem]->data_length, currents.data(), &log)) {
-    RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
-  }
-
-  if (!dynamixel_workbench_.getSyncReadData(
-        kPresentPositionVelocityCurrentIndex, ids.data(), ids.size(),
-        control_items_[kPresentVelocityItem]->address,
-        control_items_[kPresentVelocityItem]->data_length, velocities.data(), &log)) {
-    RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
-  }
-
-  if (!dynamixel_workbench_.getSyncReadData(
-        kPresentPositionVelocityCurrentIndex, ids.data(), ids.size(),
-        control_items_[kPresentPositionItem]->address,
-        control_items_[kPresentPositionItem]->data_length, positions.data(), &log)) {
-    RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
-  }
-
-  for (uint i = 0; i < ids.size(); i++) {
-    joints_[i].state.position = dynamixel_workbench_.convertValue2Radian(ids[i], positions[i]);
-    joints_[i].state.velocity = dynamixel_workbench_.convertValue2Velocity(ids[i], velocities[i]);
-    joints_[i].state.effort = dynamixel_workbench_.convertValue2Current(currents[i]);
-  }
 
   return return_type::OK;
 }
