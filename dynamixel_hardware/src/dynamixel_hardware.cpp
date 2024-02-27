@@ -29,9 +29,11 @@ namespace dynamixel_hardware
 constexpr const char * kDynamixelHardware = "DynamixelHardware";
 constexpr uint8_t kGoalPositionIndex = 0;
 constexpr uint8_t kGoalVelocityIndex = 1;
+constexpr uint8_t kGoalCurrentIndex = 2;
 constexpr uint8_t kPresentPositionVelocityCurrentIndex = 0;
 constexpr const char * kGoalPositionItem = "Goal_Position";
 constexpr const char * kGoalVelocityItem = "Goal_Velocity";
+constexpr const char * kGoalCurrentItem = "Goal_Current";
 constexpr const char * kMovingSpeedItem = "Moving_Speed";
 constexpr const char * kPresentPositionItem = "Present_Position";
 constexpr const char * kPresentVelocityItem = "Present_Velocity";
@@ -118,6 +120,12 @@ CallbackReturn DynamixelHardware::on_init(const hardware_interface::HardwareInfo
     return CallbackReturn::ERROR;
   }
 
+  const ControlItem * goal_current =
+    dynamixel_workbench_.getItemInfo(joint_ids_[0], kGoalCurrentItem);
+  if (goal_current == nullptr) {
+    return CallbackReturn::ERROR;
+  }
+
   const ControlItem * present_position =
     dynamixel_workbench_.getItemInfo(joint_ids_[0], kPresentPositionItem);
   if (present_position == nullptr) {
@@ -144,6 +152,7 @@ CallbackReturn DynamixelHardware::on_init(const hardware_interface::HardwareInfo
 
   control_items_[kGoalPositionItem] = goal_position;
   control_items_[kGoalVelocityItem] = goal_velocity;
+  control_items_[kGoalCurrentItem] = goal_current;
   control_items_[kPresentPositionItem] = present_position;
   control_items_[kPresentVelocityItem] = present_velocity;
   control_items_[kPresentCurrentItem] = present_current;
@@ -157,6 +166,13 @@ CallbackReturn DynamixelHardware::on_init(const hardware_interface::HardwareInfo
 
   if (!dynamixel_workbench_.addSyncWriteHandler(
         control_items_[kGoalVelocityItem]->address, control_items_[kGoalVelocityItem]->data_length,
+        &log)) {
+    RCLCPP_FATAL(rclcpp::get_logger(kDynamixelHardware), "%s", log);
+    return CallbackReturn::ERROR;
+  }
+
+  if (!dynamixel_workbench_.addSyncWriteHandler(
+        control_items_[kGoalCurrentItem]->address, control_items_[kGoalCurrentItem]->data_length,
         &log)) {
     RCLCPP_FATAL(rclcpp::get_logger(kDynamixelHardware), "%s", log);
     return CallbackReturn::ERROR;
@@ -386,7 +402,16 @@ return_type DynamixelHardware::write(const rclcpp::Time & /* time */, const rclc
       set_joint_positions();
       return return_type::OK;
       break;
-    default: // effort, etc
+    case ControlMode::Current:
+      set_joint_currents();
+      return return_type::OK;
+      break;
+    case ControlMode::CurrentBasedPosition:
+      set_joint_currents();
+      set_joint_positions();
+      return return_type::OK;
+      break;
+    default: // torque, etc
       RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "Control mode not implemented");
       return return_type::ERROR;
       break;
@@ -475,6 +500,40 @@ return_type DynamixelHardware::set_control_mode(const ControlMode & mode)
     return return_type::OK;
   }
 
+  if (mode == ControlMode::Current) {
+    if (torque_enabled_) {
+      enable_torque(false);
+    }
+
+    for (uint i = 0; i < joint_ids_.size(); ++i) {
+      if (!dynamixel_workbench_.setTorqueControlMode(joint_ids_[i], &log)) {
+        RCLCPP_FATAL(rclcpp::get_logger(kDynamixelHardware), "%s", log);
+        return return_type::ERROR;
+      }
+    }
+    RCLCPP_INFO(rclcpp::get_logger(kDynamixelHardware), "Current control");
+
+    enable_torque(true);
+    return return_type::OK;
+  }
+
+  if (mode == ControlMode::CurrentBasedPosition) {
+    if (torque_enabled_) {
+      enable_torque(false);
+    }
+
+    for (uint i = 0; i < joint_ids_.size(); ++i) {
+      if (!dynamixel_workbench_.setCurrentBasedPositionControlMode(joint_ids_[i], &log)) {
+        RCLCPP_FATAL(rclcpp::get_logger(kDynamixelHardware), "%s", log);
+        return return_type::ERROR;
+      }
+    }
+    RCLCPP_INFO(rclcpp::get_logger(kDynamixelHardware), "CurrentBasedPosition control");
+
+    enable_torque(true);
+    return return_type::OK;
+  }
+
   if (mode != ControlMode::Velocity && mode != ControlMode::Position && mode != ControlMode::Current && mode != ControlMode::CurrentBasedPosition) {
     RCLCPP_FATAL(
       rclcpp::get_logger(kDynamixelHardware), "Only position/velocity/current/current based position control are implemented");
@@ -526,6 +585,24 @@ CallbackReturn DynamixelHardware::set_joint_velocities()
   }
   if (!dynamixel_workbench_.syncWrite(
         kGoalVelocityIndex, ids.data(), ids.size(), commands.data(), 1, &log)) {
+    RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
+  }
+  return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn DynamixelHardware::set_joint_currents()
+{
+  const char * log = nullptr;
+  std::vector<int32_t> commands(info_.joints.size(), 0);
+  std::vector<uint8_t> ids(info_.joints.size(), 0);
+
+  std::copy(joint_ids_.begin(), joint_ids_.end(), ids.begin());
+  for (uint i = 0; i < ids.size(); i++) {
+    commands[i] = dynamixel_workbench_.convertCurrent2Value(
+      ids[i], static_cast<float>(joints_[i].command.effort));
+  }
+  if (!dynamixel_workbench_.syncWrite(
+        kGoalCurrentIndex, ids.data(), ids.size(), commands.data(), 1, &log)) {
     RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
   }
   return CallbackReturn::SUCCESS;
