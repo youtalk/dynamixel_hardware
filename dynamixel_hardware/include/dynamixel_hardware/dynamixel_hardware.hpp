@@ -94,7 +94,7 @@ public:
 private:
   return_type enable_torque(const bool enabled);
 
-  return_type set_control_mode(const ControlMode & mode, const bool force_set = false);
+  return_type set_control_mode(const ControlMode & mode);
 
   return_type reset_command();
 
@@ -108,6 +108,7 @@ private:
   std::vector<uint8_t> joint_ids_;
   bool torque_enabled_{false};
   ControlMode control_mode_{ControlMode::NoControl};
+  ControlMode prev_control_mode_{ControlMode::NoControl};
   bool mode_changed_{false};
   bool use_dummy_{false};
 };
