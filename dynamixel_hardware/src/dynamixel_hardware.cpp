@@ -80,7 +80,7 @@ CallbackReturn DynamixelHardware::on_init(const hardware_interface::HardwareInfo
 
   if (
     info_.hardware_parameters.find("use_dummy") != info_.hardware_parameters.end() &&
-    info_.hardware_parameters.at("use_dummy") == "true") {
+    (info_.hardware_parameters.at("use_dummy") == "true" || info_.hardware_parameters.at("use_dummy") == "True")) {
     use_dummy_ = true;
     RCLCPP_INFO(rclcpp::get_logger(kDynamixelHardware), "dummy mode");
     return CallbackReturn::SUCCESS;
