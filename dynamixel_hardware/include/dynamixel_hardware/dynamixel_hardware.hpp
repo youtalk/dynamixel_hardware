@@ -44,18 +44,18 @@ struct Joint
 {
   JointValue state{};
   JointValue command{};
-  JointValue prev_command{};
 };
 
 enum class ControlMode {
   Position,
   Velocity,
   Torque,
-  Currrent,
+  Current,
   ExtendedPosition,
   MultiTurn,
   CurrentBasedPosition,
   PWM,
+  NoControl,
 };
 
 class DynamixelHardware
@@ -74,6 +74,11 @@ public:
   std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
 
   DYNAMIXEL_HARDWARE_PUBLIC
+  return_type prepare_command_mode_switch(
+    const std::vector<std::string> & start_interfaces,
+    const std::vector<std::string> & stop_interfaces) override;
+  
+  DYNAMIXEL_HARDWARE_PUBLIC
   CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
 
   DYNAMIXEL_HARDWARE_PUBLIC
@@ -88,21 +93,24 @@ public:
 private:
   return_type enable_torque(const bool enabled);
 
-  return_type set_control_mode(const ControlMode & mode, const bool force_set = false);
+  return_type set_control_mode(const ControlMode & mode);
 
   return_type reset_command();
 
   CallbackReturn set_joint_positions();
   CallbackReturn set_joint_velocities();
+  CallbackReturn set_joint_currents();
   CallbackReturn set_joint_params();
 
   DynamixelWorkbench dynamixel_workbench_;
   std::map<const char * const, const ControlItem *> control_items_;
   std::vector<Joint> joints_;
   std::vector<uint8_t> joint_ids_;
+  std::vector<uint8_t> joint_ids_ttl_;
+  std::vector<uint8_t> joint_ids_rs_;
   bool torque_enabled_{false};
-  ControlMode control_mode_{ControlMode::Position};
-  bool mode_changed_{false};
+  ControlMode control_mode_{ControlMode::NoControl};
+  ControlMode prev_control_mode_{ControlMode::NoControl};
   bool use_dummy_{false};
 };
 }  // namespace dynamixel_hardware
