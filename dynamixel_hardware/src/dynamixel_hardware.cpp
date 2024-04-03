@@ -206,10 +206,6 @@ CallbackReturn DynamixelHardware::on_configure(const rclcpp_lifecycle::State & /
     return CallbackReturn::ERROR;
   }
 
-  // for (uint i = 0; i < joints_.size(); i++) {
-  //   RCLCPP_INFO(rclcpp::get_logger(kDynamixelHardware), "In on_configure, joint%d pos: %f", i, joints_[i].state.position);
-  // }
-
   enable_torque(false);
   set_control_mode(ControlMode::ExtendedPosition, true);
   set_joint_params();
@@ -285,7 +281,7 @@ return_type DynamixelHardware::read(const rclcpp::Time & /* time */, const rclcp
 
   if (!dynamixel_workbench_.syncRead(
         kPresentPositionVelocityCurrentIndex, ids.data(), ids.size(), &log)) {
-    RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "[in syncRead() in read()] %s", log);
+    RCLCPP_ERROR(rclcpp::get_logger(kDynamixelHardware), "%s", log);
     return return_type::ERROR;
   }
 
