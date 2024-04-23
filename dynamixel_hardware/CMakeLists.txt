@@ -42,7 +42,7 @@ ament_target_dependencies(
   hardware_interface
   pluginlib
   dynamixel_workbench_toolbox
-  )
+)
 
 
 pluginlib_export_plugin_description_file(hardware_interface dynamixel_hardware.xml)
