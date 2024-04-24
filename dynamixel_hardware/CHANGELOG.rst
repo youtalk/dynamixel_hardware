@@ -2,6 +2,17 @@
 Changelog for package dynamixel_hardware
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Adhere to style guide (`#73 <https://github.com/dynamixel-community/dynamixel_hardware/issues/73>`_)
+* Revised control mode changes, added set_joint_params (`#65 <https://github.com/dynamixel-community/dynamixel_hardware/issues/65>`_)
+  * revised control mode changes, added set_params
+  * removed unnecessary comment
+* Missing comma for setting Position_D_Gain (`#56 <https://github.com/dynamixel-community/dynamixel_hardware/issues/56>`_)
+  * comment out unused paramter
+  * A comma is missing for setting the Position_D_Gain
+* Contributors: Geoff Sokoll, Kenji Brameld, Lass6230, Yutaka Kondo
+
 0.3.1 (2022-11-17)
 ------------------
 * Merge pull request `#39 <https://github.com/youtalk/dynamixel_control/issues/39>`_ from ijnek/ijnek-unused-parameters
