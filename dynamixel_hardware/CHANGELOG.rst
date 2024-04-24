@@ -2,8 +2,8 @@
 Changelog for package dynamixel_hardware
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.6.0 (2024-04-24)
+------------------
 * Adhere to style guide (`#73 <https://github.com/dynamixel-community/dynamixel_hardware/issues/73>`_)
 * Revised control mode changes, added set_joint_params (`#65 <https://github.com/dynamixel-community/dynamixel_hardware/issues/65>`_)
   * revised control mode changes, added set_params
