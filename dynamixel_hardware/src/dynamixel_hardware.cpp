@@ -81,7 +81,7 @@ CallbackReturn DynamixelHardware::on_init(const hardware_interface::HardwareInfo
     return CallbackReturn::SUCCESS;
   }
 
-  auto usb_port = info_.hardware_parameters.at("usb_port");
+  auto usb_port = info_.hardware_parameters.at("port_name");
   auto baud_rate = std::stoi(info_.hardware_parameters.at("baud_rate"));
   const char * log = nullptr;
 
