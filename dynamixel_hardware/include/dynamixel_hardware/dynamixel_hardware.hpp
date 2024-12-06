@@ -45,6 +45,7 @@ struct Joint
   JointValue state{};
   JointValue command{};
   JointValue prev_command{};
+  double gear_ratio{1.0};
 };
 
 enum class ControlMode

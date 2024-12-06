@@ -69,6 +69,10 @@ CallbackReturn DynamixelHardware::on_init(const hardware_interface::HardwareInfo
     joints_[i].prev_command.position = joints_[i].command.position;
     joints_[i].prev_command.velocity = joints_[i].command.velocity;
     joints_[i].prev_command.effort = joints_[i].command.effort;
+    joints_[i].gear_ratio = 1.0;
+    if(info_.joints[i].parameters.find("gear_ratio") != info_.joints[i].parameters.end()) {
+      joints_[i].gear_ratio = std::stod(info_.joints[i].parameters.at("gear_ratio"));
+    }
     RCLCPP_INFO(rclcpp::get_logger(kDynamixelHardware), "joint_id %d: %d", i, joint_ids_[i]);
   }
 
@@ -286,9 +290,11 @@ return_type DynamixelHardware::read(
   }
 
   for (uint i = 0; i < ids.size(); i++) {
-    joints_[i].state.position = dynamixel_workbench_.convertValue2Radian(ids[i], positions[i]);
-    joints_[i].state.velocity = dynamixel_workbench_.convertValue2Velocity(ids[i], velocities[i]);
-    joints_[i].state.effort = dynamixel_workbench_.convertValue2Current(currents[i]);
+    joints_[i].state.position = dynamixel_workbench_.convertValue2Radian(ids[i], positions[i]) /
+      joints_[i].gear_ratio;
+    joints_[i].state.velocity = dynamixel_workbench_.convertValue2Velocity(ids[i], velocities[i]) /
+      joints_[i].gear_ratio;
+    joints_[i].state.effort = dynamixel_workbench_.convertValue2Current(currents[i]) * joints_[i].gear_ratio;
   }
 
   return return_type::OK;
@@ -473,7 +479,7 @@ CallbackReturn DynamixelHardware::set_joint_positions()
   for (uint i = 0; i < ids.size(); i++) {
     joints_[i].prev_command.position = joints_[i].command.position;
     commands[i] = dynamixel_workbench_.convertRadian2Value(
-      ids[i], static_cast<float>(joints_[i].command.position));
+      ids[i], static_cast<float>(joints_[i].command.position * joints_[i].gear_ratio));
   }
   if (!dynamixel_workbench_.syncWrite(
       kGoalPositionIndex, ids.data(), ids.size(), commands.data(), 1, &log))
@@ -493,7 +499,7 @@ CallbackReturn DynamixelHardware::set_joint_velocities()
   for (uint i = 0; i < ids.size(); i++) {
     joints_[i].prev_command.velocity = joints_[i].command.velocity;
     commands[i] = dynamixel_workbench_.convertVelocity2Value(
-      ids[i], static_cast<float>(joints_[i].command.velocity));
+      ids[i], static_cast<float>(joints_[i].command.velocity * joints_[i].gear_ratio));
   }
   if (!dynamixel_workbench_.syncWrite(
       kGoalVelocityIndex, ids.data(), ids.size(), commands.data(), 1, &log))
