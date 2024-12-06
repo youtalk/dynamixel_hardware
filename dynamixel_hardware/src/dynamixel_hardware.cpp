@@ -14,6 +14,8 @@
 
 #include "dynamixel_hardware/dynamixel_hardware.hpp"
 
+#include <tinyxml2.h>
+
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -70,6 +72,37 @@ CallbackReturn DynamixelHardware::on_init(const hardware_interface::HardwareInfo
     joints_[i].prev_command.velocity = joints_[i].command.velocity;
     joints_[i].prev_command.effort = joints_[i].command.effort;
     RCLCPP_INFO(rclcpp::get_logger(kDynamixelHardware), "joint_id %d: %d", i, joint_ids_[i]);
+  }
+
+  // parse URDF for calibration parameters
+  auto urdf = info_.original_xml;
+  if (!urdf.empty()) {
+    tinyxml2::XMLDocument doc;
+    if (doc.Parse(urdf.c_str()) != tinyxml2::XML_SUCCESS) {
+      RCLCPP_ERROR_STREAM(get_logger(), "Failed to parse URDF XML");
+      return hardware_interface::CallbackReturn::ERROR;
+    }
+    const auto * joint_element = doc.RootElement()->FirstChildElement("joint");
+    while (joint_element != nullptr) {
+      const auto * name_attr = joint_element->FindAttribute("name");
+      const auto * calibration_element = joint_element->FirstChildElement("calibration");
+      if (calibration_element != nullptr) {
+        const auto * rising_attr = calibration_element->FindAttribute("rising");
+        if ((rising_attr != nullptr) && (name_attr != nullptr)) {
+          auto rising = std::atof(calibration_element->Attribute("rising"));
+          std::string name = joint_element->Attribute("name");
+          auto itr = std::find_if(
+            info_.joints.begin(), info_.joints.end(),
+            [&name](const hardware_interface::ComponentInfo & joint) {
+              return joint.name == name;
+            });
+          if (itr != info_.joints.end()) {
+            joints_[std::distance(info_.joints.begin(), itr)].rising_offset = rising;
+          }
+        }
+      }
+      joint_element = joint_element->NextSiblingElement("joint");
+    }
   }
 
   if (
@@ -286,7 +319,8 @@ return_type DynamixelHardware::read(
   }
 
   for (uint i = 0; i < ids.size(); i++) {
-    joints_[i].state.position = dynamixel_workbench_.convertValue2Radian(ids[i], positions[i]);
+    joints_[i].state.position = dynamixel_workbench_.convertValue2Radian(ids[i], positions[i]) +
+      joints_[i].rising_offset;
     joints_[i].state.velocity = dynamixel_workbench_.convertValue2Velocity(ids[i], velocities[i]);
     joints_[i].state.effort = dynamixel_workbench_.convertValue2Current(currents[i]);
   }
@@ -473,7 +507,7 @@ CallbackReturn DynamixelHardware::set_joint_positions()
   for (uint i = 0; i < ids.size(); i++) {
     joints_[i].prev_command.position = joints_[i].command.position;
     commands[i] = dynamixel_workbench_.convertRadian2Value(
-      ids[i], static_cast<float>(joints_[i].command.position));
+      ids[i], static_cast<float>(joints_[i].command.position - joints_[i].rising_offset));
   }
   if (!dynamixel_workbench_.syncWrite(
       kGoalPositionIndex, ids.data(), ids.size(), commands.data(), 1, &log))
