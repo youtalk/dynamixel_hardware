@@ -45,6 +45,7 @@ struct Joint
   JointValue state{};
   JointValue command{};
   JointValue prev_command{};
+  double rising_offset{0.0};
 };
 
 enum class ControlMode

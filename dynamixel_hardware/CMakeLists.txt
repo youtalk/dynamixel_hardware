@@ -23,6 +23,7 @@ find_package(lifecycle_msgs REQUIRED)
 find_package(hardware_interface REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(dynamixel_workbench_toolbox REQUIRED)
+find_package(tinyxml2_vendor REQUIRED)
 
 add_library(
   ${PROJECT_NAME}
