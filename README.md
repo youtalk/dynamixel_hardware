@@ -36,13 +36,11 @@ Note that `joint_ids` parameters must be splited by `,`.
   <param name="usb_port">/dev/ttyUSB0</param>
   <param name="baud_rate">1000000</param>
   <!-- <param name="use_dummy">true</param> -->
-  <param name="extended_mode">false</param> <!-- Set true if you use the extended position mode of Dynamixel motors -->
+  <!-- <param name="extended_mode">true</param> -->
 </hardware>
 ```
 
-Note that the `extended_mode` parameter is optional and set to `false` by default.
-If you use the extended position (multi turn) mode of Dynamixel motors, set it to `true`.
-
+To use extended position mode on the Dynamixel motor, set the `extended_mode` parameter to `true`.
 - Terminal 1
 
 Launch the `ros2_control` manager for the OpenManipulator-X.
