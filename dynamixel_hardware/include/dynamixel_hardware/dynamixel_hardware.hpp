@@ -17,13 +17,13 @@
 
 #include <dynamixel_workbench_toolbox/dynamixel_workbench.h>
 
+#include <map>
+#include <vector>
+
 #include <hardware_interface/handle.hpp>
 #include <hardware_interface/hardware_info.hpp>
 #include <hardware_interface/system_interface.hpp>
 #include <rclcpp_lifecycle/state.hpp>
-
-#include <map>
-#include <vector>
 
 #include "dynamixel_hardware/visiblity_control.h"
 #include "rclcpp/macros.hpp"
@@ -47,7 +47,8 @@ struct Joint
   JointValue prev_command{};
 };
 
-enum class ControlMode {
+enum class ControlMode
+{
   Position,
   Velocity,
   Torque,
@@ -58,8 +59,7 @@ enum class ControlMode {
   PWM,
 };
 
-class DynamixelHardware
-: public hardware_interface::SystemInterface
+class DynamixelHardware : public hardware_interface::SystemInterface
 {
 public:
   RCLCPP_SHARED_PTR_DEFINITIONS(DynamixelHardware)
