@@ -104,6 +104,7 @@ private:
   ControlMode control_mode_{ControlMode::Position};
   bool mode_changed_{false};
   bool use_dummy_{false};
+  bool activated_{false};
 };
 }  // namespace dynamixel_hardware
 
