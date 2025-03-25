@@ -225,11 +225,12 @@ CallbackReturn DynamixelHardware::on_activate(const rclcpp_lifecycle::State & /*
       joints_[i].state.effort = 0.0;
     }
   }
+
+  activated_ = true;
+  
   read(rclcpp::Time{}, rclcpp::Duration(0, 0));
   reset_command();
   write(rclcpp::Time{}, rclcpp::Duration(0, 0));
-
-  activated_ = true;
 
   return CallbackReturn::SUCCESS;
 }
